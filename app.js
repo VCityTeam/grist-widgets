@@ -52,7 +52,7 @@ window.addEventListener("mousemove", (e) => {
 })
 window.addEventListener("mouseup", () => (isDragging = false))
 
-// --- Moteur de rendu Markdown + Mermaid ---
+// --- Markdown + Mermaid rendering engine ---
 async function renderMermaidBlocks(container) {
   const errors = []
   const codeBlocks = container.querySelectorAll("code.language-mermaid")
@@ -69,12 +69,12 @@ async function renderMermaidBlocks(container) {
       wrapper.innerHTML = svg
       target.replaceWith(wrapper.firstElementChild)
     } catch (err) {
-      // On laisse le bloc de code source affiché (avec un style d'erreur) plutôt que de le vider,
-      // ce qui évite que l'écran clignote pendant la saisie.
+      // Leave the source code block displayed (with an error style) instead of clearing it,
+      // which avoids the screen flickering while the user is typing.
       target.classList.add("mermaid-error")
       errors.push(err.message || String(err))
 
-      // On nettoie le badge généré en cache par Mermaid qui pollue le DOM en cas d'échec
+      // Clean up the cached badge Mermaid generates that pollutes the DOM on failure
       const badElement = document.getElementById(uniqueId)
       if (badElement) badElement.remove()
     }
@@ -84,7 +84,7 @@ async function renderMermaidBlocks(container) {
 }
 
 async function renderContent(text) {
-  // On masque TOUJOURS l'erreur au début d'une nouvelle tentative de rendu
+  // ALWAYS hide the error at the start of a new render attempt
   errorDiv.style.display = "none"
   errorDiv.innerText = ""
 
@@ -93,11 +93,11 @@ async function renderContent(text) {
     return
   }
 
-  // Étape 1: Convertir le Markdown en HTML (les blocs ```mermaid deviennent
-  // des <code class="language-mermaid">)
+  // Step 1: Convert the Markdown to HTML (```mermaid blocks become
+  // <code class="language-mermaid">)
   element.innerHTML = marked.parse(text)
 
-  // Étape 2: Remplacer chaque bloc mermaid par son SVG rendu
+  // Step 2: Replace each mermaid block with its rendered SVG
   const errors = await renderMermaidBlocks(element)
   updateTransform()
 
@@ -107,25 +107,25 @@ async function renderContent(text) {
   }
 }
 
-// --- Saisie et Sauvegarde ---
+// --- Input and saving ---
 editor.addEventListener("input", (e) => {
   const code = e.target.value
 
-  // Rendu visuel
+  // Visual render
   renderContent(code)
 
-  // Sauvegarde Grist
+  // Save to Grist
   if (currentRecordId) {
     grist.selectedTable
       .update({
         id: currentRecordId,
         fields: { [currentColumn]: code },
       })
-      .catch((err) => console.error("Erreur d'écriture Grist:", err))
+      .catch((err) => console.error("Grist write error:", err))
   }
 })
 
-// --- Connexion Grist ---
+// --- Grist connection ---
 function getMappedColumn(mappings) {
   return (mappings && mappings[MARKDOWN_COLUMN]) || MARKDOWN_COLUMN
 }
@@ -143,8 +143,8 @@ function loadRecord(record, column) {
 
 grist.ready({
   requiredAccess: "full",
-  // Déclarer la colonne requise permet à Grist de la lier correctement
-  // (sélection de cellule, mapping dans le panneau de configuration).
+  // Declaring the required column lets Grist link it correctly
+  // (cell selection, mapping in the configuration panel).
   columns: [{ name: MARKDOWN_COLUMN, title: "Markdown", type: "Text" }],
 })
 
@@ -153,8 +153,8 @@ grist.onRecord((record, mappings) => {
   loadRecord(record, getMappedColumn(mappings))
 })
 
-// Si aucune ligne n'a encore été sélectionnée au chargement du widget, on
-// affiche par défaut la première ligne dont la colonne Markdown n'est pas vide.
+// If no row has been selected yet when the widget loads, show the first
+// row whose Markdown column isn't empty as the default.
 grist.onRecords((records, mappings) => {
   if (currentRecordId !== null || !records) return
 
