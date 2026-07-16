@@ -17,7 +17,7 @@ let translateY = 10
 let isDragging = false
 let startX, startY
 
-let currentColumn = "mermaid"
+let currentColumn = "markdown"
 let currentRecordId = null
 
 function updateTransform() {
@@ -50,37 +50,58 @@ window.addEventListener("mousemove", (e) => {
 })
 window.addEventListener("mouseup", () => (isDragging = false))
 
-// --- Moteur de rendu Mermaid Corrigé ---
-async function renderMermaid(code) {
+// --- Moteur de rendu Markdown + Mermaid ---
+async function renderMermaidBlocks(container) {
+  const errors = []
+  const codeBlocks = container.querySelectorAll("code.language-mermaid")
+
+  let i = 0
+  for (const codeBlock of codeBlocks) {
+    const code = codeBlock.textContent
+    const uniqueId = `mermaid-${Date.now()}-${i++}`
+    const target = codeBlock.closest("pre") || codeBlock
+
+    try {
+      const { svg } = await mermaid.render(uniqueId, code)
+      const wrapper = document.createElement("div")
+      wrapper.innerHTML = svg
+      target.replaceWith(wrapper.firstElementChild)
+    } catch (err) {
+      // On laisse le bloc de code source affiché (avec un style d'erreur) plutôt que de le vider,
+      // ce qui évite que l'écran clignote pendant la saisie.
+      target.classList.add("mermaid-error")
+      errors.push(err.message || String(err))
+
+      // On nettoie le badge généré en cache par Mermaid qui pollue le DOM en cas d'échec
+      const badElement = document.getElementById(uniqueId)
+      if (badElement) badElement.remove()
+    }
+  }
+
+  return errors
+}
+
+async function renderContent(text) {
   // On masque TOUJOURS l'erreur au début d'une nouvelle tentative de rendu
   errorDiv.style.display = "none"
   errorDiv.innerText = ""
 
-  if (!code || code.trim() === "") {
+  if (!text || text.trim() === "") {
     element.innerHTML = ""
     return
   }
 
-  const uniqueId = "mermaid-" + Date.now()
+  // Étape 1: Convertir le Markdown en HTML (les blocs ```mermaid deviennent
+  // des <code class="language-mermaid">)
+  element.innerHTML = marked.parse(text)
 
-  try {
-    // Étape 1: Tenter de générer le SVG
-    const { svg } = await mermaid.render(uniqueId, code)
+  // Étape 2: Remplacer chaque bloc mermaid par son SVG rendu
+  const errors = await renderMermaidBlocks(element)
+  updateTransform()
 
-    // Étape 2: Si ça réussit, on met à jour le DOM
-    element.innerHTML = svg
-    updateTransform()
-  } catch (err) {
-    // Étape 3: Si ça échoue (erreur de frappe), on affiche l'erreur en bas
-    errorDiv.innerText = err.message || err
+  if (errors.length > 0) {
+    errorDiv.innerText = errors.join("\n\n")
     errorDiv.style.display = "block"
-
-    // On nettoie le badge généré en cache par Mermaid qui pollue le DOM en cas d'échec
-    const badElement = document.getElementById(uniqueId)
-    if (badElement) badElement.remove()
-
-    // Note : On ne vide pas l'ancien diagramme valide tant que l'utilisateur n'a pas fini de taper,
-    // ce qui évite que l'écran clignote pendant la saisie.
   }
 }
 
@@ -89,7 +110,7 @@ editor.addEventListener("input", (e) => {
   const code = e.target.value
 
   // Rendu visuel
-  renderMermaid(code)
+  renderContent(code)
 
   // Sauvegarde Grist
   if (currentRecordId) {
@@ -108,12 +129,12 @@ grist.ready({ requiredAccess: "full" })
 grist.onRecord((record, mappings) => {
   if (!record) return
 
-  currentColumn = mappings && mappings.mermaid ? mappings.mermaid : "mermaid"
+  currentColumn = mappings && mappings.markdown ? mappings.markdown : "markdown"
   currentRecordId = record.id
 
   if (document.activeElement !== editor) {
     const code = record[currentColumn] || ""
     editor.value = code
-    renderMermaid(code)
+    renderContent(code)
   }
 })

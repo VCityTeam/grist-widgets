@@ -5,6 +5,7 @@
     <meta charset="UTF-8" />
     <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/mermaid/dist/mermaid.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
 
     <style>
       html,
@@ -52,6 +53,18 @@
         position: absolute;
         transform-origin: 0 0;
         user-select: none;
+        max-width: 900px;
+        padding: 20px;
+        box-sizing: border-box;
+        background: #fff;
+      }
+      #diagram pre.mermaid-error {
+        color: #e53e3e;
+        background: #fff5f5;
+        border: 1px solid #fed7d7;
+        border-radius: 4px;
+        padding: 8px;
+        white-space: pre-wrap;
       }
       #error {
         position: absolute;
@@ -75,7 +88,7 @@
     <div id="editor-container">
       <textarea
         id="editor"
-        placeholder="Tapez votre code Mermaid ici..."
+        placeholder="Tapez votre Markdown ici (avec des blocs ```mermaid)..."
       ></textarea>
     </div>
 
