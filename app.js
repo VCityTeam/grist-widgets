@@ -17,7 +17,9 @@ let translateY = 10
 let isDragging = false
 let startX, startY
 
-let currentColumn = "markdown"
+const MARKDOWN_COLUMN = "markdown"
+
+let currentColumn = MARKDOWN_COLUMN
 let currentRecordId = null
 
 function updateTransform() {
@@ -124,17 +126,39 @@ editor.addEventListener("input", (e) => {
 })
 
 // --- Connexion Grist ---
-grist.ready({ requiredAccess: "full" })
+function getMappedColumn(mappings) {
+  return (mappings && mappings[MARKDOWN_COLUMN]) || MARKDOWN_COLUMN
+}
 
-grist.onRecord((record, mappings) => {
-  if (!record) return
-
-  currentColumn = mappings && mappings.markdown ? mappings.markdown : "markdown"
+function loadRecord(record, column) {
+  currentColumn = column
   currentRecordId = record.id
 
   if (document.activeElement !== editor) {
-    const code = record[currentColumn] || ""
+    const code = record[column] || ""
     editor.value = code
     renderContent(code)
   }
+}
+
+grist.ready({
+  requiredAccess: "full",
+  // Déclarer la colonne requise permet à Grist de la lier correctement
+  // (sélection de cellule, mapping dans le panneau de configuration).
+  columns: [{ name: MARKDOWN_COLUMN, title: "Markdown", type: "Text" }],
+})
+
+grist.onRecord((record, mappings) => {
+  if (!record) return
+  loadRecord(record, getMappedColumn(mappings))
+})
+
+// Si aucune ligne n'a encore été sélectionnée au chargement du widget, on
+// affiche par défaut la première ligne dont la colonne Markdown n'est pas vide.
+grist.onRecords((records, mappings) => {
+  if (currentRecordId !== null || !records) return
+
+  const column = getMappedColumn(mappings)
+  const first = records.find((r) => r[column])
+  if (first) loadRecord(first, column)
 })
