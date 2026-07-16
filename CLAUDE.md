@@ -11,6 +11,7 @@ There is no build step, package manager, or test suite — it's two static files
 ## Running / testing changes
 
 There's no local dev server or build command. To test changes:
+
 1. Serve the directory over HTTP (e.g. `python3 -m http.server`) since Grist widgets must be loaded via URL, not `file://`.
 2. In a Grist document, add a Custom Widget pointing at that URL (or use "Custom URL" widget type), and map the widget's `markdown` column to a text column in a table.
 3. Verify: typing in the editor re-renders the content, writes back to the mapped Grist column, and switching records loads that record's content.
