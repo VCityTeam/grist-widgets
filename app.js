@@ -1,4 +1,4 @@
-// This code is adapted from https://docs.getgrist.com/doc/qnJkZmcudBnq~cAvV7yyj2tZn4q5CD5zpgo
+// This code is adapted from https://docs.getgrist.com/doc/qnJkZmcudBnq~cAvV7yyj2tZn4q5CD5zpgo to render markdown with Claude
 
 mermaid.initialize({
   startOnLoad: false,
@@ -10,6 +10,8 @@ const editor = document.getElementById("editor")
 const canvas = document.getElementById("canvas")
 const element = document.getElementById("diagram")
 const errorDiv = document.getElementById("error")
+const editorContainer = document.getElementById("editor-container")
+const toggleEditorButton = document.getElementById("toggle-editor")
 
 let scale = 1
 let translateX = 10
@@ -25,6 +27,19 @@ let currentRecordId = null
 function updateTransform() {
   element.style.transform = `translate(${translateX}px, ${translateY}px) scale(${scale})`
 }
+
+// --- Editor minimize/expand ---
+function setEditorMinimized(minimized) {
+  editorContainer.classList.toggle("minimized", minimized)
+  toggleEditorButton.textContent = minimized ? "»" : "« Minimize"
+}
+
+toggleEditorButton.addEventListener("click", () => {
+  setEditorMinimized(!editorContainer.classList.contains("minimized"))
+})
+
+// Start with the editor minimized so the rendered canvas gets the initial focus.
+setEditorMinimized(true)
 
 // --- Zoom & Pan ---
 canvas.addEventListener(
