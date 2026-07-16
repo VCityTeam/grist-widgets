@@ -5,4 +5,4 @@ There are many [custom Grist widgets](https://support.getgrist.com/widget-custom
 ## Widgets
 
 1. [Markdown+Mermaid](/markdown-mermaid) : A simple visualizer widget for [Markdown](https://www.markdownguide.org/) with [Mermaid](https://mermaid.ai/) support
-   - Widget URL to use in Grist `` 
+   - Widget URL to use in Grist: `https://vcityteam.github.io/grist-widgets/markdown-mermaid/index.html`
