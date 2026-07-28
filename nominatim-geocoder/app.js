@@ -16,8 +16,12 @@ const OsmType = "OsmType";
 const OsmId = "OsmId";
 const AdminLevel = "AdminLevel";
 const AddressRank = "AddressRank";
+// GeoJSON geometry of the matched feature (as returned by Nominatim's
+// polygon_geojson=1 param), stringified. Null for results with no boundary
+// geometry (e.g. plain address points) or when Nominatim omits it.
+const GeoJson = "GeoJson";
 
-const OUTPUT_FIELDS = [Latitude, Longitude, OsmType, OsmId, AdminLevel, AddressRank];
+const OUTPUT_FIELDS = [Latitude, Longitude, OsmType, OsmId, AdminLevel, AddressRank, GeoJson];
 
 const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 // Nominatim's public instance usage policy caps automated use at 1 request/second.
@@ -38,6 +42,7 @@ const editorEl = {
   osmId: document.getElementById("f-osm-id"),
   adminLevel: document.getElementById("f-admin-level"),
   addressRank: document.getElementById("f-address-rank"),
+  geojson: document.getElementById("f-geojson"),
   displayName: document.getElementById("display-name"),
   error: document.getElementById("error"),
   log: document.getElementById("log"),
@@ -67,6 +72,7 @@ async function geocodeQuery(address) {
   url.searchParams.set("q", address);
   url.searchParams.set("format", "jsonv2");
   url.searchParams.set("extratags", "1");
+  url.searchParams.set("polygon_geojson", "1");
   url.searchParams.set("limit", "1");
   const response = await fetch(url);
   if (!response.ok) {
@@ -88,6 +94,7 @@ function resultToFields(result) {
       [OsmId]: null,
       [AdminLevel]: null,
       [AddressRank]: null,
+      [GeoJson]: null,
     };
   }
   const adminLevel = result.extratags && Number(result.extratags.admin_level);
@@ -98,6 +105,7 @@ function resultToFields(result) {
     [OsmId]: result.osm_id ?? null,
     [AdminLevel]: Number.isFinite(adminLevel) ? adminLevel : null,
     [AddressRank]: result.place_rank ?? null,
+    [GeoJson]: result.geojson ? JSON.stringify(result.geojson) : null,
   };
 }
 
@@ -118,6 +126,7 @@ function updatePanel(address, fields, result) {
   editorEl.osmId.textContent = fields[OsmId] ?? "—";
   editorEl.adminLevel.textContent = fields[AdminLevel] ?? "—";
   editorEl.addressRank.textContent = fields[AddressRank] ?? "—";
+  editorEl.geojson.textContent = fields[GeoJson] ? JSON.parse(fields[GeoJson]).type : "—";
   editorEl.displayName.textContent = result ? result.display_name : "";
 }
 
@@ -251,6 +260,7 @@ grist.ready({
     { name: OsmId, type: "Numeric", title: "OSM ID", optional: true },
     { name: AdminLevel, type: "Numeric", title: "Administration Level", optional: true },
     { name: AddressRank, type: "Numeric", title: "Address Rank", optional: true },
+    { name: GeoJson, type: "Text", title: "GeoJSON", optional: true },
   ],
   allowSelectBy: true,
 });
