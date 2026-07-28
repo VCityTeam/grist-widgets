@@ -1,8 +1,10 @@
-/* global grist */
+/* global grist, L */
 "use strict";
 
 // Required - address (or free-text query) to look up.
 const Address = "Address";
+// Optional - label shown on the map (tooltip/popup). Falls back to Address if unmapped.
+const Name = "Name";
 // Optional - boolean column. When mapped, any record with this checked
 // (and not yet geocoded for its current Address) is geocoded automatically.
 const Geocode = "Geocode";
@@ -10,6 +12,8 @@ const Geocode = "Geocode";
 // aren't re-geocoded on every sync, and so edits to Address are detected.
 const GeocodedAddress = "GeocodedAddress";
 // Output columns - all optional so a document can map only the fields it needs.
+// Latitude/Longitude/GeoJson double as map input: whichever a record already
+// has (from a prior geocode, or entered by hand) is what gets drawn.
 const Latitude = "Latitude";
 const Longitude = "Longitude";
 const OsmType = "OsmType";
@@ -27,12 +31,22 @@ const NOMINATIM_SEARCH_URL = "https://nominatim.openstreetmap.org/search";
 // Nominatim's public instance usage policy caps automated use at 1 request/second.
 const REQUEST_DELAY_MS = 1000;
 
+const DEFAULT_STYLE = { color: "#3388ff", weight: 2, fillOpacity: 0.2, radius: 6 };
+const SELECTED_STYLE = { color: "#ff7800", weight: 4, fillOpacity: 0.4, radius: 8 };
+
 let selectedTableId = null;
 let lastRecord = null;
 let lastMappings = null;
 let selectedRecords = null;
 let writeAccess = true;
 let scanning = null;
+
+let map = null;
+let geoLayer = null;
+let layersById = new Map();
+let selectedRowId = null;
+
+const statusEl = document.getElementById("status");
 
 const editorEl = {
   addressValue: document.getElementById("address-value"),
@@ -64,6 +78,11 @@ function log(msg) {
 
 function showError(msg) {
   editorEl.error.textContent = msg || "";
+}
+
+function showStatus(msg) {
+  statusEl.textContent = msg || "";
+  statusEl.style.display = msg ? "block" : "none";
 }
 
 // Calls Nominatim's /search endpoint and returns the best match, or null if none found.
@@ -141,7 +160,10 @@ function mappedUpdate(mappings, fields) {
   return update;
 }
 
-// Geocodes one record and writes the results back through Grist.
+// Geocodes one record and writes the results back through Grist. Grist then pushes
+// the updated row back through onRecord/onRecords, which is what drives the map to
+// pick up and draw the new Latitude/Longitude/GeoJson - there's no separate local
+// "add to map" step.
 // `force` bypasses the GeocodedAddress cache (used by the manual button).
 async function geocodeRecord(tableId, rowId, address, mappings, { force = false, cachedAddress } = {}) {
   if (!address) {
@@ -210,6 +232,138 @@ function scanOnNeed(mappings) {
   }
 }
 
+function ensureMap() {
+  if (map) {
+    return map;
+  }
+  map = L.map("map");
+  L.tileLayer("https://tile.openstreetmap.org/{z}/{x}/{y}.png", {
+    attribution: '&copy; <a href="https://openstreetmap.org/copyright">OpenStreetMap contributors</a>',
+    maxZoom: 19,
+  }).addTo(map);
+  map.setView([0, 0], 2);
+  return map;
+}
+
+// Turns a mapped record into a GeoJSON Feature, or null if it has no usable
+// geometry (neither a parseable GeoJson field nor a Latitude/Longitude pair).
+function recordToFeature(rec) {
+  let geometry = null;
+  if (rec[GeoJson]) {
+    try {
+      const parsed = JSON.parse(rec[GeoJson]);
+      geometry = parsed && parsed.type === "Feature" ? parsed.geometry : parsed;
+    } catch (e) {
+      geometry = null;
+    }
+  }
+  if (!geometry && Number.isFinite(rec[Latitude]) && Number.isFinite(rec[Longitude])) {
+    geometry = { type: "Point", coordinates: [rec[Longitude], rec[Latitude]] };
+  }
+  if (!geometry) {
+    return null;
+  }
+  return { type: "Feature", geometry, properties: { id: rec.id, name: rec[Name] || rec[Address] } };
+}
+
+function styleFor(id) {
+  return id === selectedRowId ? SELECTED_STYLE : DEFAULT_STYLE;
+}
+
+function pointToLayer(feature, latlng) {
+  return L.circleMarker(latlng, styleFor(feature.properties.id));
+}
+
+function style(feature) {
+  return styleFor(feature.properties.id);
+}
+
+function onEachFeature(feature, layer) {
+  const name = feature.properties.name;
+  if (name) {
+    layer.bindTooltip(String(name));
+  }
+  layer.on("click", () => selectFeature(feature.properties.id, { fromClick: true }));
+  layersById.set(feature.properties.id, layer);
+}
+
+function layerBounds(layer) {
+  if (layer.getBounds) {
+    return layer.getBounds();
+  }
+  if (layer.getLatLng) {
+    return L.latLngBounds([layer.getLatLng(), layer.getLatLng()]);
+  }
+  return null;
+}
+
+function rebuildLayer(records) {
+  const m = ensureMap();
+  if (geoLayer) {
+    m.removeLayer(geoLayer);
+  }
+  layersById = new Map();
+
+  const features = [];
+  let skipped = 0;
+  for (const rec of records) {
+    const feature = recordToFeature(rec);
+    if (feature) {
+      features.push(feature);
+    } else {
+      skipped++;
+    }
+  }
+
+  geoLayer = L.geoJSON(
+    { type: "FeatureCollection", features },
+    { style, pointToLayer, onEachFeature }
+  ).addTo(m);
+
+  showStatus(skipped > 0 ? `${skipped} record(s) not yet geocoded: no Latitude/Longitude or GeoJSON` : "");
+
+  try {
+    const bounds = geoLayer.getBounds();
+    if (bounds.isValid()) {
+      m.fitBounds(bounds, { maxZoom: 16, padding: [20, 20] });
+    }
+  } catch (e) {
+    // no features to fit
+  }
+}
+
+// Highlights the layer for `id` and clears the previous highlight, panning/zooming
+// it into view if it isn't currently visible. Does not rebuild the map, so this
+// preserves the user's current pan/zoom (rebuildLayer is only called when the
+// underlying record set changes).
+function selectFeature(id, { fromClick = false } = {}) {
+  const prevLayer = layersById.get(selectedRowId);
+  if (prevLayer && prevLayer.setStyle) {
+    prevLayer.setStyle(DEFAULT_STYLE);
+  }
+
+  selectedRowId = id;
+
+  const layer = layersById.get(id);
+  if (layer) {
+    if (layer.setStyle) {
+      layer.setStyle(SELECTED_STYLE);
+    }
+    const m = ensureMap();
+    const bounds = layerBounds(layer);
+    if (bounds && bounds.isValid() && !m.getBounds().contains(bounds)) {
+      m.fitBounds(bounds, { maxZoom: Math.max(m.getZoom(), 15), padding: [40, 40] });
+    }
+    if (layer.openTooltip) {
+      layer.openTooltip();
+    }
+  }
+
+  if (fromClick) {
+    grist.setCursorPos?.({ rowId: id }).catch(() => {});
+  }
+}
+
 grist.on("message", (e) => {
   if (e.tableId) {
     selectedTableId = e.tableId;
@@ -221,10 +375,16 @@ grist.onRecord((record, mappings) => {
   lastMappings = mappings;
   showError("");
   updatePanel(lastRecord[Address], fieldsFromRecord(lastRecord), null);
+  selectFeature(lastRecord.id);
 });
 
 grist.onRecords((data, mappings) => {
   selectedRecords = grist.mapColumnNames(data) || data;
+  rebuildLayer(selectedRecords);
+  const layer = layersById.get(selectedRowId);
+  if (layer && layer.setStyle) {
+    layer.setStyle(SELECTED_STYLE);
+  }
   scanOnNeed(mappings);
 });
 
@@ -252,6 +412,7 @@ editorEl.geocodeBtn.addEventListener("click", async () => {
 grist.ready({
   columns: [
     Address,
+    { name: Name, type: "Text", optional: true },
     { name: Geocode, type: "Bool", title: "Geocode", optional: true },
     { name: GeocodedAddress, type: "Text", title: "Geocoded Address", optional: true },
     { name: Latitude, type: "Numeric", optional: true },
