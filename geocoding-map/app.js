@@ -428,7 +428,7 @@ grist.ready({
     { name: Latitude, type: "Numeric", optional: true },
     { name: Longitude, type: "Numeric", optional: true },
     { name: OsmType, type: "Text", title: "OSM Type", optional: true },
-    { name: OsmId, type: "Numeric", title: "OSM ID", optional: true },
+    { name: OsmId, type: "Text", title: "OSM ID", optional: true },
     { name: AdminLevel, type: "Numeric", title: "Administration Level", optional: true },
     { name: AddressRank, type: "Numeric", title: "Address Rank", optional: true },
     { name: GeoJson, type: "Text", title: "GeoJSON", optional: true },
