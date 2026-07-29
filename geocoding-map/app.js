@@ -414,7 +414,7 @@ editorEl.geocodeBtn.addEventListener("click", async () => {
 
 panelToggleBtn.addEventListener("click", () => {
   const collapsed = panelEl.classList.toggle("collapsed");
-  panelToggleBtn.textContent = collapsed ? "Show panel" : "Hide panel";
+  panelToggleBtn.textContent = collapsed ? "» Show panel" : "« Hide panel";
   // The map's container just resized; Leaflet needs to be told explicitly.
   setTimeout(() => map && map.invalidateSize(), 0);
 });
