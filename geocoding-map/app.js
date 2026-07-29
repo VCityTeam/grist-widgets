@@ -61,9 +61,10 @@ const editorEl = {
   error: document.getElementById("error"),
   log: document.getElementById("log"),
   geocodeBtn: document.getElementById("geocode-btn"),
-  fieldsTable: document.getElementById("fields"),
-  fieldsToggleBtn: document.getElementById("fields-toggle-btn"),
 };
+
+const panelEl = document.getElementById("panel");
+const panelToggleBtn = document.getElementById("panel-toggle-btn");
 
 function delay(ms) {
   return new Promise((resolve) => setTimeout(resolve, ms));
@@ -411,9 +412,11 @@ editorEl.geocodeBtn.addEventListener("click", async () => {
   }
 });
 
-editorEl.fieldsToggleBtn.addEventListener("click", () => {
-  const collapsed = editorEl.fieldsTable.classList.toggle("collapsed");
-  editorEl.fieldsToggleBtn.textContent = collapsed ? "Show fields" : "Hide fields";
+panelToggleBtn.addEventListener("click", () => {
+  const collapsed = panelEl.classList.toggle("collapsed");
+  panelToggleBtn.textContent = collapsed ? "Show panel" : "Hide panel";
+  // The map's container just resized; Leaflet needs to be told explicitly.
+  setTimeout(() => map && map.invalidateSize(), 0);
 });
 
 grist.ready({
