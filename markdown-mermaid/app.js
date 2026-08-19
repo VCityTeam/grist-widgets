@@ -6,6 +6,12 @@ mermaid.initialize({
   theme: "default",
 })
 
+// html: true preserves marked's previous behavior of passing raw HTML through;
+// DOMPurify below sanitizes the result since that reopens script/HTML injection.
+const md = markdownit({ html: true, linkify: true })
+md.use(markdownitFootnote)
+md.use(mdItPluginAlert.alert)
+
 const editor = document.getElementById("editor")
 const canvas = document.getElementById("canvas")
 const element = document.getElementById("diagram")
@@ -109,8 +115,9 @@ async function renderContent(text) {
   }
 
   // Step 1: Convert the Markdown to HTML (```mermaid blocks become
-  // <code class="language-mermaid">)
-  element.innerHTML = marked.parse(text)
+  // <code class="language-mermaid">), then sanitize since `html: true` above
+  // allows raw HTML/script through the parser.
+  element.innerHTML = DOMPurify.sanitize(md.render(text))
 
   // Step 2: Replace each mermaid block with its rendered SVG
   const errors = await renderMermaidBlocks(element)
