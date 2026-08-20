@@ -4,7 +4,7 @@ There are many [custom Grist widgets](https://support.getgrist.com/widget-custom
 
 ## Widgets
 
-1. [Markdown+Mermaid](/markdown-mermaid) : A simple visualizer widget for [Markdown](https://www.markdownguide.org/) with [Mermaid](https://mermaid.ai/) support
+1. [Markdown+Mermaid](/markdown-mermaid) : A simple visualizer widget for [Markdown](https://www.markdownguide.org/) with support for [Mermaid](https://mermaid.ai/), [footnotes](https://github.com/markdown-it/markdown-it-footnote), and [alerts](https://mdit-plugins.github.io/alert.html)
    - Widget URL to use in Grist: `https://vcityteam.github.io/grist-widgets/markdown-mermaid`
-2. [Geocoding Map](/geocoding-map) : Geocodes an address column using [Nominatim](https://nominatim.org/) (writing back latitude, longitude, OSM type, OSM ID, administration level, address rank, and the matched feature's boundary as GeoJSON) and visualizes the results on a [Leaflet](https://leafletjs.com/) map, either as points or as arbitrary GeoJSON geometry, unlike [gristlabs/grist-widget's map widget](https://github.com/gristlabs/grist-widget/tree/master/map) which only supports points and doesn't geocode
+3. [Geocoding Map](/geocoding-map) : Geocodes an address column using [Nominatim](https://nominatim.org/) (writing back latitude, longitude, OSM type, OSM ID, administration level, address rank, and the matched feature's boundary as GeoJSON) and visualizes the results on a [Leaflet](https://leafletjs.com/) map, either as points or as arbitrary GeoJSON geometry, unlike [gristlabs/grist-widget's map widget](https://github.com/gristlabs/grist-widget/tree/master/map) which only supports points and doesn't geocode
    - Widget URL to use in Grist: `https://vcityteam.github.io/grist-widgets/geocoding-map`
