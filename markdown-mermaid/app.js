@@ -2,8 +2,8 @@
 
 mermaid.initialize({
   startOnLoad: false,
-  securityLevel: "loose",
-  theme: "default",
+  securityLevel: 'loose',
+  theme: 'default',
 })
 
 // html: true preserves marked's previous behavior of passing raw HTML through;
@@ -12,12 +12,12 @@ const md = markdownit({ html: true, linkify: true })
 md.use(markdownitFootnote)
 md.use(mdItPluginAlert.alert)
 
-const editor = document.getElementById("editor")
-const canvas = document.getElementById("canvas")
-const element = document.getElementById("diagram")
-const errorDiv = document.getElementById("error")
-const editorContainer = document.getElementById("editor-container")
-const toggleEditorButton = document.getElementById("toggle-editor")
+const editor = document.getElementById('editor')
+const canvas = document.getElementById('canvas')
+const element = document.getElementById('diagram')
+const errorDiv = document.getElementById('error')
+const editorContainer = document.getElementById('editor-container')
+const toggleEditorButton = document.getElementById('toggle-editor')
 
 let scale = 1
 let translateX = 10
@@ -25,7 +25,7 @@ let translateY = 10
 let isDragging = false
 let startX, startY
 
-const MARKDOWN_COLUMN = "markdown"
+const MARKDOWN_COLUMN = 'markdown'
 
 let currentColumn = MARKDOWN_COLUMN
 let currentRecordId = null
@@ -36,12 +36,12 @@ function updateTransform() {
 
 // --- Editor minimize/expand ---
 function setEditorMinimized(minimized) {
-  editorContainer.classList.toggle("minimized", minimized)
-  toggleEditorButton.textContent = minimized ? "»" : "« Minimize"
+  editorContainer.classList.toggle('minimized', minimized)
+  toggleEditorButton.textContent = minimized ? '»' : '« Minimize'
 }
 
-toggleEditorButton.addEventListener("click", () => {
-  setEditorMinimized(!editorContainer.classList.contains("minimized"))
+toggleEditorButton.addEventListener('click', () => {
+  setEditorMinimized(!editorContainer.classList.contains('minimized'))
 })
 
 // Start with the editor minimized so the rendered canvas gets the initial focus.
@@ -49,50 +49,50 @@ setEditorMinimized(true)
 
 // --- Zoom & Pan ---
 canvas.addEventListener(
-  "wheel",
+  'wheel',
   (e) => {
     e.preventDefault()
     scale += e.deltaY < 0 ? 0.1 : -0.1
     scale = Math.max(0.1, Math.min(scale, 5))
     updateTransform()
   },
-  { passive: false }
+  { passive: false },
 )
 
-canvas.addEventListener("mousedown", (e) => {
+canvas.addEventListener('mousedown', (e) => {
   if (e.button !== 0) return
   isDragging = true
   startX = e.clientX - translateX
   startY = e.clientY - translateY
 })
-window.addEventListener("mousemove", (e) => {
+window.addEventListener('mousemove', (e) => {
   if (!isDragging) return
   translateX = e.clientX - startX
   translateY = e.clientY - startY
   updateTransform()
 })
-window.addEventListener("mouseup", () => (isDragging = false))
+window.addEventListener('mouseup', () => (isDragging = false))
 
 // --- Markdown + Mermaid rendering engine ---
 async function renderMermaidBlocks(container) {
   const errors = []
-  const codeBlocks = container.querySelectorAll("code.language-mermaid")
+  const codeBlocks = container.querySelectorAll('code.language-mermaid')
 
   let i = 0
   for (const codeBlock of codeBlocks) {
     const code = codeBlock.textContent
     const uniqueId = `mermaid-${Date.now()}-${i++}`
-    const target = codeBlock.closest("pre") || codeBlock
+    const target = codeBlock.closest('pre') || codeBlock
 
     try {
       const { svg } = await mermaid.render(uniqueId, code)
-      const wrapper = document.createElement("div")
+      const wrapper = document.createElement('div')
       wrapper.innerHTML = svg
       target.replaceWith(wrapper.firstElementChild)
     } catch (err) {
       // Leave the source code block displayed (with an error style) instead of clearing it,
       // which avoids the screen flickering while the user is typing.
-      target.classList.add("mermaid-error")
+      target.classList.add('mermaid-error')
       errors.push(err.message || String(err))
 
       // Clean up the cached badge Mermaid generates that pollutes the DOM on failure
@@ -106,11 +106,11 @@ async function renderMermaidBlocks(container) {
 
 async function renderContent(text) {
   // ALWAYS hide the error at the start of a new render attempt
-  errorDiv.style.display = "none"
-  errorDiv.innerText = ""
+  errorDiv.style.display = 'none'
+  errorDiv.innerText = ''
 
-  if (!text || text.trim() === "") {
-    element.innerHTML = ""
+  if (!text || text.trim() === '') {
+    element.innerHTML = ''
     return
   }
 
@@ -124,13 +124,13 @@ async function renderContent(text) {
   updateTransform()
 
   if (errors.length > 0) {
-    errorDiv.innerText = errors.join("\n\n")
-    errorDiv.style.display = "block"
+    errorDiv.innerText = errors.join('\n\n')
+    errorDiv.style.display = 'block'
   }
 }
 
 // --- Input and saving ---
-editor.addEventListener("input", (e) => {
+editor.addEventListener('input', (e) => {
   const code = e.target.value
 
   // Visual render
@@ -143,7 +143,7 @@ editor.addEventListener("input", (e) => {
         id: currentRecordId,
         fields: { [currentColumn]: code },
       })
-      .catch((err) => console.error("Grist write error:", err))
+      .catch((err) => console.error('Grist write error:', err))
   }
 })
 
@@ -157,17 +157,17 @@ function loadRecord(record, column) {
   currentRecordId = record.id
 
   if (document.activeElement !== editor) {
-    const code = record[column] || ""
+    const code = record[column] || ''
     editor.value = code
     renderContent(code)
   }
 }
 
 grist.ready({
-  requiredAccess: "full",
+  requiredAccess: 'full',
   // Declaring the required column lets Grist link it correctly
   // (cell selection, mapping in the configuration panel).
-  columns: [{ name: MARKDOWN_COLUMN, title: "Markdown", type: "Text" }],
+  columns: [{ name: MARKDOWN_COLUMN, title: 'Markdown', type: 'Text' }],
 })
 
 grist.onRecord((record, mappings) => {

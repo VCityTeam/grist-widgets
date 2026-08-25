@@ -1,4 +1,4 @@
-<!DOCTYPE html>
+<!doctype html>
 <!-- This code is adapted from https://docs.getgrist.com/qnJkZmcudBnq/Simple-mermaid-edit-and-view to render markdown with Claude -->
 <html>
   <head>
@@ -8,7 +8,10 @@
     <script src="https://cdn.jsdelivr.net/npm/markdown-it@14/dist/markdown-it.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/markdown-it-footnote@4/dist/markdown-it-footnote.min.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/@mdit/plugin-alert@2/dist/cdn.umd.min.js"></script>
-    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/@mdit/plugin-alert@2/alert.css" />
+    <link
+      rel="stylesheet"
+      href="https://cdn.jsdelivr.net/npm/@mdit/plugin-alert@2/alert.css"
+    />
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
 
     <style>
@@ -114,7 +117,11 @@
   <body>
     <script type="module" src="./app.js"></script>
     <div id="editor-container">
-      <button id="toggle-editor" title="Toggle editor" aria-label="Toggle editor"></button>
+      <button
+        id="toggle-editor"
+        title="Toggle editor"
+        aria-label="Toggle editor"
+      ></button>
       <textarea
         id="editor"
         placeholder="Tapez votre Markdown ici (avec des blocs ```mermaid)..."
