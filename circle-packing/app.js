@@ -353,8 +353,8 @@ grist.ready({
   columns: [
     Label,
     { name: Value, type: 'Numeric' },
-    { name: Group, type: 'Text', title: 'Group', optional: true },
-    { name: Color, type: 'Text', title: 'Color Category', optional: true },
+    { name: Group, type: 'Choice', title: 'Group', optional: true },
+    { name: Color, type: 'Choice', title: 'Color Category', optional: true },
   ],
   allowSelectBy: true,
 })
