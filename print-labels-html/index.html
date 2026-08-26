@@ -206,6 +206,18 @@
         #options-container {
           display: none;
         }
+        /*
+         * .page-outer's height is forced to 100% above, which has no defined containing
+         * block and so collapses to content height when a label's content is shorter than
+         * a full page. Force each page onto its own printed sheet explicitly instead of
+         * relying on height to push subsequent pages down.
+         */
+        .page-outer {
+          break-after: page;
+        }
+        .page-outer:last-child {
+          break-after: auto;
+        }
       }
     </style>
   </head>
