@@ -109,7 +109,7 @@ function buildCategoryScale(root) {
 function leafFill(d, categoryScale) {
   return categoryScale && d.data.color != null
     ? categoryScale(d.data.color)
-    : '#fff'
+    : 'lightgrey'
 }
 
 function isSelected(d) {

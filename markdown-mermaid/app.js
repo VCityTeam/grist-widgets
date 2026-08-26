@@ -164,7 +164,7 @@ function loadRecord(record, column) {
 }
 
 grist.ready({
-  requiredAccess: 'full',
+  requiredAccess: 'read table',
   // Declaring the required column lets Grist link it correctly
   // (cell selection, mapping in the configuration panel).
   columns: [{ name: MARKDOWN_COLUMN, title: 'Markdown', type: 'Text' }],

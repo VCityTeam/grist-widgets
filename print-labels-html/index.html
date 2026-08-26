@@ -5,7 +5,6 @@
     <title>Print Labels (HTML)</title>
     <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
     <script src="https://cdn.jsdelivr.net/npm/dompurify@3/dist/purify.min.js"></script>
-
     <style>
       body {
         font-family: sans-serif;
@@ -49,6 +48,7 @@
         .labelpage {
           transform: scale(var(--page-scaling, 1));
         }
+        
       }
       .label {
         padding: 0.08in;
@@ -133,7 +133,7 @@
         height: 10in;
         width: 7.5in;
       }
-      .header {
+      #header {
         margin: 8px;
         font-size: 11pt;
         color: var(--grist-theme-secondary, #929299);
@@ -202,9 +202,9 @@
         @page {
           margin: 0 !important;
         }
-        .header,
+        #header,
         #options-container {
-          display: none;
+          display: none !important;
         }
         /*
          * .page-outer's height is forced to 100% above, which has no defined containing
@@ -224,7 +224,7 @@
   <body>
     <script type="module" src="./app.js"></script>
     <div id="status"></div>
-    <div class="header" id="header">
+    <div id="header">
       <select id="labeltype"></select>
       <div id="options-btn" title="Options">⚙</div>
     </div>
