@@ -32,6 +32,7 @@ const DEPTH_COLOR = d3
 const svg = d3.select('#chart')
 const statusEl = document.getElementById('status')
 const breadcrumbEl = document.getElementById('breadcrumb')
+const limitInput = document.getElementById('category-limit')
 
 let rootHierarchy = null // current d3.hierarchy root, after pack() has run
 let node = null // <circle> selection for the current render
@@ -43,6 +44,9 @@ let selectedId = null // Grist row id highlighted (from a click or onRecord)
 // on almost any edit to the table) can restore the user's zoom level instead
 // of always snapping back out to the root circle.
 let focusPath = []
+let lastRecords = null // most recent onRecords payload, replayed when the limit changes
+// Max leaf circles kept per group/subgroup (top by Value), or null for no limit.
+let categoryLimit = null
 
 function showStatus(msg) {
   statusEl.textContent = msg || ''
@@ -90,6 +94,27 @@ function buildHierarchy(records) {
   }
 
   return root
+}
+
+// Caps the number of leaf circles kept directly under each group node to
+// `limit`, keeping the largest by value and dropping the rest; group
+// (sub-category) nodes themselves are never dropped or counted against the
+// limit, only recursed into, so the cap applies independently within every
+// level of the Group nesting.
+function applyCategoryLimit(node, limit) {
+  if (!node.children) {
+    return
+  }
+  const groups = []
+  const leaves = []
+  for (const child of node.children) {
+    ;(child.children ? groups : leaves).push(child)
+  }
+  leaves.sort((a, b) => b.value - a.value)
+  node.children = groups.concat(leaves.slice(0, limit))
+  for (const group of groups) {
+    applyCategoryLimit(group, limit)
+  }
 }
 
 // Builds a categorical color scale from whatever Color values are present
@@ -320,6 +345,9 @@ function renderChart(root) {
 function renderRecords(records) {
   showStatus('')
   const data = buildHierarchy(records)
+  if (categoryLimit) {
+    applyCategoryLimit(data, categoryLimit)
+  }
   const hierarchy = d3
     .hierarchy(data)
     .sum((d) => d.value || 0)
@@ -337,8 +365,19 @@ function renderRecords(records) {
   renderChart(root)
 }
 
+limitInput.addEventListener('change', () => {
+  const raw = limitInput.value.trim()
+  categoryLimit = raw ? Math.max(1, parseInt(raw, 10) || 1) : null
+  limitInput.value = categoryLimit ?? ''
+  grist.widgetApi.setOption('categoryLimit', categoryLimit).catch(() => {})
+  if (lastRecords) {
+    renderRecords(lastRecords)
+  }
+})
+
 grist.onRecords((data, mappings) => {
   const records = grist.mapColumnNames(data) || data
+  lastRecords = records
   renderRecords(records)
 })
 
@@ -346,6 +385,15 @@ grist.onRecord((record) => {
   const rec = grist.mapColumnNames(record) || record
   if (rec && rec.id != null) {
     selectFromGrist(rec.id)
+  }
+})
+
+grist.onOptions((options) => {
+  const limit = options?.categoryLimit
+  categoryLimit = Number.isFinite(limit) ? limit : null
+  limitInput.value = categoryLimit ?? ''
+  if (lastRecords) {
+    renderRecords(lastRecords)
   }
 })
 
