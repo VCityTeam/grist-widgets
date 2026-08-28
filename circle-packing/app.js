@@ -401,8 +401,13 @@ grist.ready({
   columns: [
     Label,
     { name: Value, type: 'Numeric' },
-    { name: Group, type: 'Choice', title: 'Group', optional: true },
-    { name: Color, type: 'Choice', title: 'Color Category', optional: true },
+    { name: Group, type: 'Choice, Text, Ref', title: 'Group', optional: true },
+    {
+      name: Color,
+      type: 'Choice, Text, Ref',
+      title: 'Color Category',
+      optional: true,
+    },
   ],
   allowSelectBy: true,
 })
