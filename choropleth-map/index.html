@@ -1,0 +1,145 @@
+<!doctype html>
+<html>
+  <head>
+    <meta charset="UTF-8" />
+    <title>Choropleth Map</title>
+    <script src="https://docs.getgrist.com/grist-plugin-api.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/d3@7/dist/d3.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/@observablehq/plot@0.6/dist/plot.umd.min.js"></script>
+    <style>
+      html,
+      body {
+        margin: 0;
+        padding: 0;
+        width: 100%;
+        height: 100%;
+        font-family: sans-serif;
+        overflow: hidden;
+        background-color: var(--grist-theme-bg-default, white);
+        color: var(--grist-theme-body, #262633);
+      }
+      body {
+        display: flex;
+        flex-direction: column;
+      }
+      #toolbar {
+        flex: 0 0 auto;
+        display: flex;
+        flex-flow: row wrap;
+        align-items: center;
+        gap: 12px;
+        padding: 8px 12px;
+        border-bottom: 1px solid var(--grist-theme-decoration, #d9d9d9);
+        font-size: 12px;
+      }
+      #toolbar label {
+        display: flex;
+        align-items: center;
+        gap: 4px;
+        white-space: nowrap;
+      }
+      #toolbar select,
+      #toolbar input[type='color'] {
+        font-size: 12px;
+        background-color: var(--grist-theme-bg-default, white);
+        color: var(--grist-theme-body, #262633);
+        border: 1px solid var(--grist-theme-decoration, #d9d9d9);
+        border-radius: 3px;
+        padding: 2px 4px;
+      }
+      #toolbar input[type='color'] {
+        padding: 0;
+        width: 28px;
+        height: 22px;
+      }
+      #plot-container {
+        position: relative;
+        flex: 1;
+        min-height: 0;
+        min-width: 0;
+      }
+      #plot {
+        width: 100%;
+        height: 100%;
+      }
+      #plot svg {
+        display: block;
+      }
+      #plot path {
+        cursor: pointer;
+      }
+      #status {
+        position: absolute;
+        top: 10px;
+        left: 10px;
+        right: 10px;
+        padding: 8px 10px;
+        border-radius: 4px;
+        font-size: 12px;
+        color: #a33;
+        background: rgba(255, 255, 255, 0.9);
+        border: 1px solid #ccc;
+        white-space: pre-wrap;
+        display: none;
+        z-index: 10;
+      }
+    </style>
+  </head>
+  <body>
+    <script type="module" src="./app.js"></script>
+    <div id="toolbar">
+      <label
+        >Projection
+        <select id="projection">
+          <option value="equal-earth">Equal Earth</option>
+          <option value="mercator">Mercator</option>
+          <option value="natural-earth1">Natural Earth</option>
+          <option value="equirectangular">Equirectangular</option>
+          <option value="albers-usa">Albers USA</option>
+          <option value="orthographic">Orthographic (globe)</option>
+          <option value="azimuthal-equal-area">Azimuthal Equal-Area</option>
+          <option value="conic-equal-area">Conic Equal-Area</option>
+          <option value="stereographic">Stereographic</option>
+        </select>
+      </label>
+      <label
+        >Scale
+        <select id="scale-type">
+          <option value="sequential">Continuous</option>
+          <option value="quantile">Quantile bins</option>
+          <option value="quantize">Equal-interval bins</option>
+        </select>
+      </label>
+      <label
+        >Scheme
+        <select id="color-scheme">
+          <option value="blues">Blues</option>
+          <option value="greens">Greens</option>
+          <option value="oranges">Oranges</option>
+          <option value="purples">Purples</option>
+          <option value="reds">Reds</option>
+          <option value="viridis">Viridis</option>
+          <option value="turbo">Turbo</option>
+          <option value="magma">Magma</option>
+          <option value="plasma">Plasma</option>
+          <option value="warm">Warm</option>
+          <option value="cool">Cool</option>
+        </select>
+      </label>
+      <label><input type="checkbox" id="reverse-scheme" />Reverse</label>
+      <label
+        >No data <input type="color" id="no-data-color" value="#e4e4e4"
+      /></label>
+      <label
+        >Stroke <input type="color" id="stroke-color" value="#333333"
+      /></label>
+      <label><input type="checkbox" id="show-legend" checked />Legend</label>
+      <label><input type="checkbox" id="show-graticule" />Graticule</label>
+      <label><input type="checkbox" id="show-sphere" />Sphere outline</label>
+    </div>
+    <div id="plot-container">
+      <div id="plot"></div>
+      <div id="status"></div>
+    </div>
+  </body>
+</html>
