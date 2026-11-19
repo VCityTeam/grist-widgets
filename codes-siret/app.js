@@ -39,7 +39,7 @@ const OUTPUT_FIELDS = [
   {
     name: 'NatureJuridique',
     title: 'Legal Category Code',
-    type: 'Text',
+    type: 'Text,Numeric,Integer',
     get: (r) => r.nature_juridique,
   },
   {
