@@ -1,7 +1,7 @@
 // Reads the Grist document's own metadata tables (_grist_Tables and
 // _grist_Tables_column) and renders the selected table's columns and types as a
-// Mermaid erDiagram. Reference columns are marked as foreign keys (FK);
-// relationship lines between tables are intentionally not drawn yet.
+// Mermaid erDiagram. Reference columns are marked as foreign keys (FK); in the
+// "All tables" view they are also drawn as relationships between tables.
 
 mermaid.initialize({
   startOnLoad: false,
@@ -154,6 +154,36 @@ function isForeignKey(column) {
   return /^Ref(List)?:/.test(String(column.type || ''))
 }
 
+// Splits a Ref/RefList column's type into {isList, targetTableId}, or returns
+// null for any other column.
+function parseReference(column) {
+  const match = /^Ref(List)?:(.+)$/s.exec(String(column.type || ''))
+  return match ? { isList: Boolean(match[1]), targetTableId: match[2] } : null
+}
+
+// One Mermaid relationship per reference column whose target table is also in
+// the diagram, labelled with the column ID. Cardinality, written target first:
+// - Ref:<Target>     each source row points to zero or one target row, and a
+//                    target row can be referenced by any number of source rows:
+//                    Target |o--o{ Source
+// - RefList:<Target> each source row points to any number of target rows, and
+//                    vice versa: Target }o--o{ Source
+function relationshipLines(tables) {
+  const tableIds = new Set(tables.map((t) => t.tableId))
+  const lines = []
+  for (const table of tables) {
+    for (const column of table.columns) {
+      const ref = parseReference(column)
+      if (!ref || !tableIds.has(ref.targetTableId)) continue
+      const cardinality = ref.isList ? '}o--o{' : '|o--o{'
+      lines.push(
+        `    ${mermaidName(ref.targetTableId)} ${cardinality} ${mermaidName(table.tableId)} : ${mermaidComment(column.colId)}`,
+      )
+    }
+  }
+  return lines
+}
+
 // The comment collects, in order: the column header (single-quoted, and only
 // when it differs from the column ID), a "formula" flag for computed columns,
 // and the column's description, collapsed onto one line.
@@ -169,13 +199,14 @@ function attributeLine(column) {
   return `        ${mermaidType(column.type)} ${mermaidName(column.colId)}${key}${comment}`
 }
 
-function buildErDiagram(tables) {
+function buildErDiagram(tables, { relationships = false } = {}) {
   const lines = ['erDiagram']
   for (const table of tables) {
     lines.push(`    ${mermaidName(table.tableId)} {`)
     for (const column of table.columns) lines.push(attributeLine(column))
     lines.push('    }')
   }
+  if (relationships) lines.push(...relationshipLines(tables))
   return lines.join('\n')
 }
 
@@ -246,7 +277,9 @@ async function refresh() {
       showError('No table to show: pick one in the Table menu.')
       return
     }
-    await renderDiagram(buildErDiagram(selected))
+    await renderDiagram(
+      buildErDiagram(selected, { relationships: tableSelect.value === ALL_TABLES }),
+    )
   } catch (err) {
     console.error(err)
     showError(
