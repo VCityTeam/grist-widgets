@@ -1,6 +1,7 @@
 // Reads the Grist document's own metadata tables (_grist_Tables and
 // _grist_Tables_column) and renders the selected table's columns and types as a
-// Mermaid erDiagram. Keys and relationships are intentionally not drawn yet.
+// Mermaid erDiagram. Reference columns are marked as foreign keys (FK);
+// relationship lines between tables are intentionally not drawn yet.
 
 mermaid.initialize({
   startOnLoad: false,
@@ -98,7 +99,7 @@ function isUserTable(table) {
   return !table.summarySourceTable && !table.tableId.startsWith('GristHidden_')
 }
 
-// Returns [{tableId, columns: [{colId, label, type, isFormula}]}] in the
+// Returns [{tableId, columns: [{colId, label, description, type, isFormula}]}] in the
 // document's table order, columns in their Raw Data order.
 async function readSchema() {
   const [tablesData, columnsData] = await Promise.all([
@@ -117,6 +118,9 @@ async function readSchema() {
       .map((c) => ({
         colId: c.colId,
         label: c.label,
+        // Column descriptions are newer than the other fields; older
+        // documents may not have them.
+        description: c.description || '',
         type: c.type,
         isFormula: c.isFormula,
       })),
@@ -144,14 +148,25 @@ function mermaidComment(text) {
   return `"${String(text).replace(/"/g, "'")}"`
 }
 
-// The column header is shown as a comment when it differs from the column ID,
-// and formula columns are flagged since they're computed rather than stored.
+// A Ref:<Table> column stores the row id of a record in <Table>, and a
+// RefList:<Table> column a list of them; both are foreign keys.
+function isForeignKey(column) {
+  return /^Ref(List)?:/.test(String(column.type || ''))
+}
+
+// The comment collects, in order: the column header (single-quoted, and only
+// when it differs from the column ID), a "formula" flag for computed columns,
+// and the column's description, collapsed onto one line.
+// Mermaid expects keys between the attribute name and its comment.
 function attributeLine(column) {
   const notes = []
-  if (column.label && column.label !== column.colId) notes.push(column.label)
+  if (column.label && column.label !== column.colId) notes.push(`'${column.label}'`)
   if (column.isFormula) notes.push('formula')
-  const comment = notes.length ? ` ${mermaidComment(notes.join(' · '))}` : ''
-  return `        ${mermaidType(column.type)} ${mermaidName(column.colId)}${comment}`
+  const description = column.description.replace(/\s+/g, ' ').trim()
+  if (description) notes.push(description)
+  const key = isForeignKey(column) ? ' FK' : ''
+  const comment = notes.length ? ` ${mermaidComment(notes.join(' ; '))}` : ''
+  return `        ${mermaidType(column.type)} ${mermaidName(column.colId)}${key}${comment}`
 }
 
 function buildErDiagram(tables) {
